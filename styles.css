@@ -1,0 +1,23 @@
+.LoginContainer{
+  display: flex;
+  flex-direction: column;
+  flex:1;
+  align-items: center;
+  margin-top: 30px;
+}
+.Login .Formulario{
+  display: flex;
+  flex-direction: column;
+  padding: 20px 30px;
+  border-radius: 10px;
+  background-color: #f6f6f6;
+  align-items: center;
+}
+.Login h3{
+  margin:0px;
+  padding: 0;
+  text-align: center;
+}
+.Login hr{
+  margin-bottom: 10px;
+}
