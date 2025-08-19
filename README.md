@@ -34,9 +34,8 @@ import {Login, OAuth} from 'mbcj-oauth-ft';
 <Route path="/oauth"> 
   <OAuth 
     cargado={ENV_LOADED}    //Variable para avisar que los datos se encuentran cargados
-    url_token={`${BASE_URL}/usuarios/oauth/token`}  //URL para obtener token del backend del cliente
     logeo={(token, usuario) => setDatosUsuario(token, usuario)}     //Funcion a ejecutiar al comprobar inicio
-    url_datos_personales={`${BASE_URL}/usuarios/oauth/datos/1`}     //URL del cliente para obtener datos personales
+    url_base={`${BASE_URL}/usuarios/oauth`}                         //URL para obtener los recursos del backend
     irLogin={() => navigate(`${BASENAME}/login`, {replace:true})}   //Función para redirigir al inicio de sesión
     irInicio={() => navigate(`${BASENAME}`, {replace:true})}        //Función para redirigir al inicio
   />

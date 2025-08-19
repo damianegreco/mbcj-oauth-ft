@@ -3,7 +3,7 @@ import { useSearch } from 'wouter'
 import axios from 'axios';
 import './styles.css';
 
-export default function OAuth ({logeo, cargado, url_token, url_datos_personales, irLogin, irInicio}){
+export default function OAuth ({logeo, cargado, url_base, irLogin, irInicio}){
   const [errorUsuario,setErrorUsuario] = useState(null);
   const searchString = useSearch();
   
@@ -19,7 +19,7 @@ export default function OAuth ({logeo, cargado, url_token, url_datos_personales,
 
   const obtenerToken = (codigo) => {
     return new Promise((resolve, reject) => {
-      axios.post(url_token, {codigo})
+      axios.post(`${url_base}/token`, {codigo})
       .then((resp) => {
         if (resp.data.status === "ok") return resolve(resp.data.token);
         reject(resp.data.error);
@@ -31,7 +31,19 @@ export default function OAuth ({logeo, cargado, url_token, url_datos_personales,
   const obtenerDatosPersonales = (token) => {
     return new Promise((resolve, reject) => {
       const config = { headers: {authorization: token} }
-      axios.get(url_datos_personales, config)
+      axios.get(`${url_base}/datos/1`, config)
+      .then((resp) => {
+        if (resp.data.status === "ok") return resolve(resp.data);
+        reject(resp.data.error);
+      })
+      .catch((error) => reject(error));
+    })
+  }
+
+  const obtenerNuevoToken = (token) =>{
+    return new Promise((resolve, reject) => {
+      const config = { headers: {authorization: token} }
+      axios.get(`${url_base}/nuevo-token`, config)
       .then((resp) => {
         if (resp.data.status === "ok") return resolve(resp.data);
         reject(resp.data.error);
@@ -50,14 +62,20 @@ export default function OAuth ({logeo, cargado, url_token, url_datos_personales,
 
     obtenerToken(codigo)
     .then((token) => {
-      obtenerDatosPersonales(token)
-      .then((usuario) => logeo(token, usuario))
+      obtenerNuevoToken(token)
+      .then((nuevoToken) => {
+        obtenerDatosPersonales(nuevoToken)
+        .then((usuario) => logeo(nuevoToken, usuario))
+        .catch((error) => {
+          console.error(error);
+          if (typeof error.response.data === 'object') {
+            return alert("Ocurrió un error");
+          }
+          setErrorUsuario(error.response.data);
+        })
+      })
       .catch((error) => {
         console.error(error);
-        if (typeof error.response.data === 'object') {
-          return alert("Ocurrió un error");
-        }
-        setErrorUsuario(error.response.data);
       })
     })
     .catch((error) => {
