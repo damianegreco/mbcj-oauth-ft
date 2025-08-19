@@ -45,7 +45,7 @@ export default function OAuth ({logeo, cargado, url_base, irLogin, irInicio}){
       const config = { headers: {authorization: token} }
       axios.get(`${url_base}/nuevo-token`, config)
       .then((resp) => {
-        if (resp.data.status === "ok") return resolve(resp.data);
+        if (resp.data.status === "ok") return resolve(resp.data.nuevoToken);
         reject(resp.data.error);
       })
       .catch((error) => reject(error));
