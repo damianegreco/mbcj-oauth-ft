@@ -1,108 +1,73 @@
 import { useEffect, useState } from 'react';
-import { useSearch } from 'wouter'
-import axios from 'axios';
-import './styles.css';
+import { useSearch } from 'wouter';
+import { obtenerToken, obtenerNuevoToken, obtenerDatosPersonales } from './apiService';
 
-export default function OAuth ({logeo, cargado, url_base, irLogin, irInicio}){
-  const [errorUsuario,setErrorUsuario] = useState(null);
+/**
+ * Componente que maneja el callback del flujo de autenticación OAuth.
+ * @param {{
+ * logeo: function(string, object): void,
+ * cargado: boolean,
+ * urlBase: string,
+ * irLogin: function(): void,
+ * onError: function(string): void
+ * }} props - Propiedades del componente.
+ * @returns {JSX.Element}
+ */
+export default function OAuth({ logeo, cargado, urlBase, irLogin, onError }) {
   const searchString = useSearch();
-  
-  const obtenerParams = () => {
-    let params = searchString.split('&');
-    let newParams = {};
-    for (let i = 0; i < params.length; i++) {
-      const param = params[i].split('=');
-      newParams[param[0]] = param[1];
-    }
-    return newParams;
-  }
-
-  const obtenerToken = (codigo) => {
-    return new Promise((resolve, reject) => {
-      axios.post(`${url_base}/token`, {codigo})
-      .then((resp) => {
-        if (resp.data.status === "ok") return resolve(resp.data.token);
-        reject(resp.data.error);
-      })
-      .catch((error) => reject(error));
-    })
-  }
-
-  const obtenerDatosPersonales = (token) => {
-    return new Promise((resolve, reject) => {
-      const config = { headers: {authorization: token} }
-      axios.get(`${url_base}/datos/1`, config)
-      .then((resp) => {
-        if (resp.data.status === "ok") return resolve(resp.data);
-        reject(resp.data.error);
-      })
-      .catch((error) => reject(error));
-    })
-  }
-
-  const obtenerNuevoToken = (token) =>{
-    return new Promise((resolve, reject) => {
-      const config = { headers: {authorization: token} }
-      axios.get(`${url_base}/nuevo-token`, config)
-      .then((resp) => {
-        if (resp.data.status === "ok") return resolve(resp.data.nuevoToken);
-        reject(resp.data.error);
-      })
-      .catch((error) => reject(error));
-    })
-  }
+  // Se añade un estado para mostrar mensajes de carga dinámicos al usuario.
+  const [mensaje, setMensaje] = useState('Iniciando verificación...');
 
   useEffect(() => {
-    if (!cargado) return;
-    const {codigo} = obtenerParams();
+    const procesarAutenticacion = async () => {
+      const params = new URLSearchParams(searchString);
+      const codigo = params.get('codigo');
 
-    if (!codigo){
-      return alert("Sin código de acceso");
+      if (!codigo) {
+        onError('No se recibió un código de autorización. Será redirigido.');
+        setTimeout(irLogin, 3000);
+        return;
+      }
+
+      try {
+        // Se actualiza el mensaje en cada paso del proceso.
+        setMensaje('Obteniendo token de acceso...');
+        const tokenInicial = await obtenerToken(urlBase, codigo);
+
+        setMensaje('Validando credenciales...');
+        const nuevoToken = await obtenerNuevoToken(urlBase, tokenInicial);
+        
+        setMensaje('Cargando datos del usuario...');
+        const usuario = await obtenerDatosPersonales(urlBase, nuevoToken);
+        
+        logeo(nuevoToken, usuario);
+
+      } catch (error) {
+        console.error('Error en el flujo de OAuth:', error);
+        const errorResponse = error.response; 
+        
+        if (errorResponse?.status === 403) {
+          onError('Su código de acceso ha expirado. Será redirigido para iniciar sesión.');
+          setTimeout(irLogin, 4000);
+        } else {
+          const mensajeServidor = errorResponse?.data;
+          const mensajeError = typeof mensajeServidor === 'string' 
+            ? mensajeServidor 
+            : (error.message || 'Ocurrió un error inesperado al verificar su identidad.');
+          onError(mensajeError);
+        }
+      }
+    };
+
+    if (cargado) {
+      procesarAutenticacion();
     }
+  }, [cargado, searchString, urlBase, logeo, irLogin, onError]);
 
-    obtenerToken(codigo)
-    .then((token) => {
-      obtenerNuevoToken(token)
-      .then((nuevoToken) => {
-        obtenerDatosPersonales(nuevoToken)
-        .then((usuario) => logeo(nuevoToken, usuario))
-        .catch((error) => {
-          console.error(error);
-          if (typeof error.response.data === 'object') {
-            return alert("Ocurrió un error");
-          }
-          setErrorUsuario(error.response.data);
-        })
-      })
-      .catch((error) => {
-        console.error(error);
-      })
-    })
-    .catch((error) => {
-      console.error(error);
-      if (error.response.status === 403){
-        alert("Código vencido, inicie sesión nuevamente")
-        irLogin();
-      } else {
-        alert("Ocurrió un error");
-        irInicio();
-      }
-    })
-  }, [cargado])
-
-  return(
-    <div className='Login LoginContainer'>
-      {errorUsuario === null ? 
-        <h3>Verificando inicio de sesión</h3>
-      :
-        <>
-          <h2 style={{marginBottom:20, padding:0}}>{errorUsuario}</h2>
-          <h3 style={{marginBottom:20, padding:0}}>Por favor, contactese con el administrador para habilitar su usuario</h3>
-          <a href='#' onClick={irInicio}>
-            <span style={{fontWeight:'bold', fontSize:20}}>Volver al inicio</span>
-          </a>
-        </>
-      }
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, alignItems: 'center', marginTop: '30px' }}>
+      {/* El h3 ahora muestra el mensaje de estado dinámico. */}
+      <h3>{mensaje}</h3>
     </div>
-  )
+  );
 }
