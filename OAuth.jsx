@@ -20,6 +20,7 @@ export default function OAuth({ logeo, cargado, urlBase, irLogin, onError }) {
 
   useEffect(() => {
     const procesarAutenticacion = async () => {
+      if (!cargado) return; 
       const params = new URLSearchParams(searchString);
       const codigo = params.get('codigo');
 
@@ -41,7 +42,7 @@ export default function OAuth({ logeo, cargado, urlBase, irLogin, onError }) {
         const usuario = await obtenerDatosPersonales(urlBase, nuevoToken);
         
         logeo(nuevoToken, usuario);
-
+        return;
       } catch (error) {
         console.error('Error en el flujo de OAuth:', error);
         const errorResponse = error.response; 
@@ -59,10 +60,8 @@ export default function OAuth({ logeo, cargado, urlBase, irLogin, onError }) {
       }
     };
 
-    if (cargado) {
-      procesarAutenticacion();
-    }
-  }, [cargado, searchString, urlBase, logeo, irLogin, onError]);
+    procesarAutenticacion();
+  }, [cargado, searchString, urlBase]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, alignItems: 'center', marginTop: '30px' }}>
