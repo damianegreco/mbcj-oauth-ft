@@ -7,12 +7,17 @@ import axios from 'axios';
  * @returns {Promise<string>} Promesa que resuelve con el token de acceso.
  */
 export const obtenerToken = async (urlBase, codigo) => {
-  const response = await axios.post(`${urlBase}/token`, { codigo });
-  if (response.data.status === "ok") {
-    return response.data.token;
+  try {
+    const response = await axios.post(`${urlBase}/token`, { codigo });
+    if (response.data.status === "ok") {
+      return response.data.token;
+    }
+    // Si el status no es "ok", se construye un error a partir de la respuesta.
+    throw new Error(response.data.error || 'Error al obtener el token.');
+  } catch (error) {
+    // Relanza el error original de Axios para conservar toda la información (status, data, etc.).
+    throw error;
   }
-  // Lanza un error que será capturado por el bloque catch en el componente.
-  throw new Error(response.data.error || 'Error al obtener el token.');
 };
 
 /**
@@ -22,12 +27,17 @@ export const obtenerToken = async (urlBase, codigo) => {
  * @returns {Promise<object>} Promesa que resuelve con los datos del usuario.
  */
 export const obtenerDatosPersonales = async (urlBase, token) => {
-  const config = { headers: { authorization: token } };
-  const response = await axios.get(`${urlBase}/datos/1`, config);
-  if (response.data.status === "ok") {
-    return response.data;
+  try {
+    const config = { headers: { authorization: token } };
+    const response = await axios.get(`${urlBase}/datos/1`, config);
+    if (response.data.status === "ok") {
+      return response.data;
+    }
+    throw new Error(response.data.error || 'Error al obtener los datos del usuario.');
+  } catch (error) {
+    // Relanza el error original de Axios.
+    throw error;
   }
-  throw new Error(response.data.error || 'Error al obtener los datos del usuario.');
 };
 
 /**
@@ -37,10 +47,15 @@ export const obtenerDatosPersonales = async (urlBase, token) => {
  * @returns {Promise<string>} Promesa que resuelve con el nuevo token.
  */
 export const obtenerNuevoToken = async (urlBase, token) => {
-  const config = { headers: { authorization: token } };
-  const response = await axios.get(`${urlBase}/nuevo-token`, config);
-  if (response.data.status === "ok") {
-    return response.data.nuevoToken;
+  try {
+    const config = { headers: { authorization: token } };
+    const response = await axios.get(`${urlBase}/nuevo-token`, config);
+    if (response.data.status === "ok") {
+      return response.data.nuevoToken;
+    }
+    throw new Error(response.data.error || 'Error al renovar el token.');
+  } catch (error) {
+    // Relanza el error original de Axios.
+    throw error;
   }
-  throw new Error(response.data.error || 'Error al renovar el token.');
 };
