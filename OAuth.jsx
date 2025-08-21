@@ -9,11 +9,12 @@ import { obtenerToken, obtenerNuevoToken, obtenerDatosPersonales } from './apiSe
  * cargado: boolean,
  * urlBase: string,
  * irLogin: function(): void,
+ * irInicio: function(): void,
  * onError: function(string): void
  * }} props - Propiedades del componente.
  * @returns {JSX.Element}
  */
-export default function OAuth({ logeo, cargado, urlBase, irLogin, onError }) {
+export default function OAuth({ logeo, cargado, urlBase, irInicio, irLogin, onError }) {
   const searchString = useSearch();
   // Se añade un estado para mostrar mensajes de carga dinámicos al usuario.
   const [mensaje, setMensaje] = useState('Iniciando verificación...');
@@ -40,8 +41,8 @@ export default function OAuth({ logeo, cargado, urlBase, irLogin, onError }) {
         
         setMensaje('Cargando datos del usuario...');
         const usuario = await obtenerDatosPersonales(urlBase, nuevoToken);
-        
         logeo(nuevoToken, usuario);
+        irInicio();
         return;
       } catch (error) {
         console.error('Error en el flujo de OAuth:', error);
