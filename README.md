@@ -6,6 +6,7 @@
 
 - **Componente `<Login />`**: Redirige de forma segura al usuario a la página de inicio de sesión del proveedor de OAuth.
 - **Componente `<OAuth />`**: Gestiona el callback del proveedor de OAuth, intercambia el código de autorización por un token de acceso y obtiene los datos del usuario.
+- **Componente `<LogoutDialog />`**: Pregunta al usuario si desea cerrar sesión sólo en el sistema actual o en todos los sistemas del ministerio.
 - **Flujo Simplificado**: Abstrae la complejidad del flujo de OAuth 2.0, permitiendo una integración rápida.
 - **Manejo de Tokens**: Incluye funciones para obtener y renovar tokens de acceso.
 - **Configurable**: Permite una fácil configuración a través de props y variables de entorno.
@@ -16,6 +17,7 @@ El proyecto está compuesto por los siguientes archivos principales:
 
 -   `Login.jsx`: Componente de React encargado de construir la URL de autorización y redirigir al usuario al servicio de OAuth.
 -   `OAuth.jsx`: Componente que maneja la respuesta del servicio de OAuth, procesa el código de autorización y gestiona la obtención de tokens y datos del usuario.
+-   `LogoutDialog.jsx`: Diálogo que consulta al usuario el alcance del cierre de sesión (sistema actual o todos).
 -   `apiService.js`: Módulo que contiene la lógica para comunicarse con la API del servicio de OAuth (obtener token, renovar token, obtener datos personales).
 -   `index.js`: Punto de entrada de la librería que exporta los componentes principales para su uso en otras aplicaciones.
 
@@ -26,6 +28,7 @@ Este proyecto utiliza las siguientes tecnologías y librerías:
 -   **React.js**: Biblioteca principal para la construcción de la interfaz de usuario.
 -   **axios**: Cliente HTTP para realizar las solicitudes a la API de OAuth.
 -   **wouter**: Un enrutador minimalista para aplicaciones de React.
+-   **mbcj-ui-styles** (peer): Aporta el `Boton` institucional que usa `<LogoutDialog />`.
 
 ## Instalación
 
@@ -126,6 +129,58 @@ export default App;
 | `irLogin` | `function` | Sí | Función para redirigir al usuario a la página de login en caso de error. |
 | `irInicio` | `function` | Sí | Función para redirigir al usuario a la página de inicio tras el éxito. |
 | `onError` | `function` | No | Función para gestionar y mostrar mensajes de error durante el proceso. |
+
+#### `<LogoutDialog />`
+
+| Prop | Tipo | Obligatorio | Descripción |
+| :--- | :--- | :--- | :--- |
+| `abierto` | `boolean` | Sí | Controla la visibilidad del diálogo. |
+| `onCerrar` | `function` | Sí | Se ejecuta al cancelar o al hacer clic fuera del diálogo. |
+| `onConfirmar` | `function` | Sí | Recibe `true` si eligió salir de todos los sistemas, `false` si eligió salir sólo del actual. |
+| `titulo` | `string` | No | Encabezado del diálogo. |
+| `mensaje` | `string` | No | Texto explicativo bajo el encabezado. |
+
+### Cierre de sesión: sólo este sistema o todos
+
+Los sistemas del ministerio comparten la sesión del proveedor OAuth sobre un mismo dominio,
+así que cerrar sesión admite dos alcances. `<LogoutDialog />` sólo hace la pregunta: la salida
+la ejecuta el sistema con `logout()` de `mbcj-hooks`, reenviando el valor recibido.
+
+```javascript
+import { useState } from 'react';
+import { LogoutDialog } from 'mbcj-oauth-ft';
+import { useUser } from 'mbcj-hooks';
+
+function App() {
+  const { logout } = useUser();
+  const [salida, setSalida] = useState(false);
+
+  return (
+    <>
+      {/* Donde antes se llamaba a logout(), ahora se abre el diálogo. */}
+      <Header onLogout={() => setSalida(true)} />
+
+      <LogoutDialog
+        abierto={salida}
+        onCerrar={() => setSalida(false)}
+        onConfirmar={(todos) => {
+          setSalida(false);
+          logout({ todos });   // todos: false = sólo este sistema; true = todos
+          navigate('/login');
+        }}
+      />
+    </>
+  );
+}
+```
+
+Con `todos: false` se borran únicamente las claves de este sistema (prefijo `${BASENAME}_`)
+y los demás sistemas siguen conectados. Con `todos: true` se vacía el `localStorage` completo
+y se expiran las cookies del proveedor OAuth, de modo que el próximo ingreso vuelva a pedir
+credenciales.
+
+> El diálogo usa el `Boton` de `mbcj-ui-styles`, por lo que el sistema consumidor debe tener
+> ese SDK instalado y su hoja de estilos importada (`import 'mbcj-ui-styles/src/index.css'`).
 
 ### Variables de Entorno
 
