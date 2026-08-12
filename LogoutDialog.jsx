@@ -70,9 +70,9 @@ export default function LogoutDialog({
           </Boton>
         </div>
 
-        <p className="LogoutDialogAclaracion">
+        {/* <p className="LogoutDialogAclaracion">
           Si sale de todos, deberá volver a ingresar sus credenciales la próxima vez.
-        </p>
+        </p> */}
 
         <div className="LogoutDialogCancelar">
           <Boton variante="negro" onClick={onCerrar}>
